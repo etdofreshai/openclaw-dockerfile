@@ -10,4 +10,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["bash"]
+CMD ["sleep", "infinity"]
