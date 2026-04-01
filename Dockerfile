@@ -1,43 +1,30 @@
 FROM node:22-bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    bash \
-    ca-certificates \
-    curl \
-    tini \
+  bash \
+  ca-certificates \
+  curl \
+  tini \
+  lsof \
   && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard
 
 RUN cat > /usr/local/bin/run-openclaw.sh <<'EOF'
 #!/usr/bin/env bash
-set -u
+set -euo pipefail
 
-count=0
-window_start=$(date +%s)
+PORT="${OPENCLAW_GATEWAY_PORT:-18789}"
 
-while true; do
-  now=$(date +%s)
-
-  if [ $((now - window_start)) -ge 300 ]; then
-    count=0
-    window_start=$now
-  fi
-
-  count=$((count + 1))
-
-  if [ "$count" -gt 3 ]; then
-    echo "openclaw gateway exited too many times within 5 minutes; stopping container"
-    exit 1
-  fi
-
-  echo "starting openclaw gateway attempt $count"
-  openclaw gateway
-  exit_code=$?
-
-  echo "openclaw gateway exited with code $exit_code"
+# Wait for the port to become free before starting.
+# This avoids racing a previous shutdown or a still-bound socket.
+while lsof -iTCP:"$PORT" -sTCP:LISTEN -n -P >/dev/null 2>&1; do
+  echo "port $PORT still in use; waiting..."
   sleep 1
 done
+
+echo "starting openclaw gateway"
+exec openclaw gateway
 EOF
 
 RUN chmod +x /usr/local/bin/run-openclaw.sh
