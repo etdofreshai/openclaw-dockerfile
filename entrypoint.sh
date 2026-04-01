@@ -12,9 +12,7 @@ mkdir -p "${APP_DIR}" \
 
 export OPENCLAW_STATE_DIR="${OPENCLAW_STATE_DIR:-${DATA_DIR}/.openclaw}"
 export OPENCLAW_WORKSPACE_DIR="${OPENCLAW_WORKSPACE_DIR:-${DATA_DIR}/workspace}"
-export PATH="${APP_DIR}/bin:${PATH}"
-
-OPENCLAW_BIN="${APP_DIR}/bin/openclaw"
+export PATH="${APP_DIR}/node_modules/.bin:${PATH}"
 
 install_openclaw() {
   echo "[openclaw] Installing OpenClaw into ${APP_DIR}..."
@@ -26,19 +24,26 @@ update_openclaw() {
   npm install --prefix "${APP_DIR}" "openclaw@${OPENCLAW_VERSION}"
 }
 
-if [[ ! -x "${OPENCLAW_BIN}" ]]; then
+if [[ ! -f "${APP_DIR}/package.json" ]]; then
+  echo '{}' > "${APP_DIR}/package.json"
+fi
+
+if [[ ! -e "${APP_DIR}/node_modules/openclaw/openclaw.mjs" ]]; then
   install_openclaw
 elif [[ "${AUTO_UPDATE}" == "true" ]]; then
   update_openclaw
 fi
 
-echo "[openclaw] Using binary: ${OPENCLAW_BIN}"
-"${OPENCLAW_BIN}" --version || true
+OPENCLAW_BIN="${APP_DIR}/node_modules/.bin/openclaw"
+if [[ ! -x "${OPENCLAW_BIN}" ]]; then
+  OPENCLAW_BIN="${APP_DIR}/node_modules/openclaw/openclaw.mjs"
+fi
 
-# If the user passes a custom command, run that instead.
+echo "[openclaw] Using binary: ${OPENCLAW_BIN}"
+node "${APP_DIR}/node_modules/openclaw/openclaw.mjs" --version || true
+
 if [[ "$#" -gt 0 ]]; then
   exec "$@"
 fi
 
-# Default: start gateway
-exec "${OPENCLAW_BIN}" gateway
+exec node "${APP_DIR}/node_modules/openclaw/openclaw.mjs" gateway
