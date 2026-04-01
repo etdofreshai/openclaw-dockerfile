@@ -46,4 +46,4 @@ if [[ "$#" -gt 0 ]]; then
   exec "$@"
 fi
 
-exec node "${APP_DIR}/node_modules/openclaw/openclaw.mjs" gateway
+exec node "${APP_DIR}/node_modules/openclaw/openclaw.mjs" gateway --allow-unconfigured
